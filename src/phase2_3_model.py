@@ -55,9 +55,9 @@ class StyleScriptGenerator(nn.Module):
         batch_size = out.size(0)
         tau = style_vector[:, 0]        # Stroke thickness
         theta_deg = style_vector[:, 1]  # Slant angle
-        
-        # Eq 8: Font Size Adj Factor = min(max(tau, 0.8), 1.2)
-        font_scale = torch.clamp(tau, min=0.8, max=1.2)
+       
+        # Eq 8: Font Size Adj Factor = min(max(tau/2, 0.8), 1.2)
+        font_scale = torch.clamp(tau / 2.0, min=0.8, max=1.2)
         
         # Eq 9: Shear Trans Matrix. Clamp between -30 and 30 degrees.
         theta_clamped = torch.clamp(theta_deg, min=-30.0, max=30.0)
