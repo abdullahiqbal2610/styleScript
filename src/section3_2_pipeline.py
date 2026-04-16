@@ -4,6 +4,11 @@ from PIL import Image
 
 def run_trocr_inference(image_path):
     print(f"--- Running Section 3.2: Practical OCR Pipeline ---")
+    # Implements the OCR Pipeline described in Section 3.2 of the paper.
+    # This pipeline applies preprocessing, CRAFT-based text detection, and
+    # fine-tuned TrOCR recognition to digitize engineering documents.
+    # No specific equations are defined for Section 3.2; it relies on the
+    # trained TrOCR model (microsoft/trocr-small-printed) for text recognition.
     print(f"Loading TrOCR model (this may take a minute to download weights)...")
     
     # 1. Load the processor and model from Hugging Face

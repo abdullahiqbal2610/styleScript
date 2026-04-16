@@ -41,12 +41,12 @@ class StyleScriptLoss(nn.Module):
         self.trocr_model = trocr_model
         
     def forward(self, target_style, generated_img, target_text_tokens, quality_score):
-        # 1. Style Loss: L1 norm
+        # 1. Style Loss: L1 norm — ℒ_style = ||s - Φ(G(M,s))||₁  (Eq. 18)
         approx_generated_style = torch.mean(generated_img, dim=[2, 3]).repeat(1, 2)
         target_style_scaled = target_style / 100.0 
         L_style = self.l1(approx_generated_style, target_style_scaled)
         
-        # 2. Content Loss: Cross-Entropy via TrOCR Decoder
+        # 2. Content Loss: Cross-Entropy via TrOCR Decoder — ℒ_content = ||y - R(G(M,s))||₂  (Eq. 19)
         # Format our 1x64x128 image to TrOCR's expected 3x384x384 input
         trocr_input = F.interpolate(generated_img, size=(384, 384), mode='bilinear', align_corners=False)
         trocr_input = trocr_input.repeat(1, 3, 1, 1)
@@ -56,7 +56,7 @@ class StyleScriptLoss(nn.Module):
         outputs = self.trocr_model(pixel_values=trocr_input, labels=target_text_tokens)
         L_content = outputs.loss 
         
-        # 3. Quality Loss: -log(Q_total)
+        # 3. Quality Loss: ℒ_quality = -log(Q_total)  (Eq. 20)
         L_quality = -torch.log(torch.tensor(quality_score, dtype=torch.float32, requires_grad=True))
         
         return L_style, L_content, L_quality
@@ -107,6 +107,7 @@ def train_one_epoch():
         
         L_style, L_content, L_quality = criterion(style_vectors, generated_imgs, text_tokens, q_score)
         
+        # ℒ_total = λ₁·ℒ_style + λ₂·ℒ_content + λ₃·ℒ_quality  (Eq. 21)
         L_total = (lambda1 * L_style) + (lambda2 * L_content) + (lambda3 * L_quality)
         
         L_total.backward()

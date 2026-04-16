@@ -6,25 +6,26 @@ import random
 # Phase 4: Augmentation Transform T(x_hat)
 class StyleScriptAugmenter:
     def __init__(self):
-        # T_rot: Rotation between -3 and +3 degrees
+        # T_rot: Rotation between -3 and +3 degrees — T_rot(x̂) = R(θ)·x̂  (Eq. 11)
+        # R(θ) = [cosθ -sinθ; sinθ cosθ], θ ~ U(-3°, 3°)  (Eq. 12)
         self.rotate = T.RandomRotation(degrees=[-3.0, 3.0])
         
-        # T_pers: Perspective distortion
+        # T_pers: Perspective distortion — T_pers(x̂) = P(c)·x̂, P(c) with c1,c2 ~ U(-0.01, 0.01)  (Eq. 13)
         self.perspective = T.RandomPerspective(distortion_scale=0.1, p=1.0)
         
     def apply_noise(self, x, std=0.05):
-        # T_noise: Gaussian noise injection η ~ N(0, σ^2)
+        # T_noise: Gaussian noise injection η ~ N(0, σ²) — T_noise(x̂) = x̂ + η  (Eq. 13)
         noise = torch.randn_like(x) * std
         return x + noise
         
     def apply_photometric(self, x):
-        # T_photo: Brightness and contrast U(0.95, 1.05)
+        # T_photo: Brightness and contrast — T_photo(x̂) = α·x̂ + β, α,β ~ U(0.95, 1.05)  (Eq. 14)
         alpha = random.uniform(0.95, 1.05) # contrast
         beta = random.uniform(-0.05, 0.05) # brightness (shifted for normalized tensors)
         return torch.clamp(alpha * x + beta, 0.0, 1.0)
 
     def forward(self, x):
-        # Composite Transform: T = T_rot o T_pers o T_noise o T_photo
+        # Composite Transform: x_aug = T(x̂) = T_rot ∘ T_pers ∘ T_noise ∘ T_photo  (Eq. 15)
         x_aug = self.rotate(x)
         x_aug = self.perspective(x_aug)
         x_aug = self.apply_noise(x_aug)
@@ -43,19 +44,19 @@ class QualityValidator:
                                                 [0.0, 1.0, 0.0]]]])
 
     def check_blank(self, x):
-        # Q_blank = 1 [min(x) >= tau_white]
+        # Q_blank = 1[min(x_aug) >= τ_white(250)]  (Eq. 14 in the paper's Phase 5)
         # In a 0.0 to 1.0 tensor, 0.98 approximates the paper's 250/255 threshold
         return torch.min(x) >= self.blank_threshold
 
     def check_sharpness(self, x):
-        # R = -∇²(G * x)
+        # R = -∇²(G * x_aug), G(x,y) = Gaussian kernel  (Eq. 16)
         # Apply laplacian convolution to measure variance (edge sharpness)
         edges = F.conv2d(x, self.laplacian_kernel.to(x.device), padding=1)
         sharpness_score = torch.var(edges)
         return sharpness_score >= self.edge_threshold
 
     def validate(self, x):
-        # Q_total = Q_blank ∧ Q_bound ∧ (R ≥ R_min)
+        # Q_total = Q_blank ∧ Q_bound ∧ (R ≥ R_min)  (Eq. 17)
         # Bounding check is implicit as our tensor is strictly constrained to 64x128
         is_blank = self.check_blank(x)
         is_sharp = self.check_sharpness(x)

@@ -6,6 +6,7 @@ def extract_stroke_thickness(image_path):
     """
     Calculates average stroke thickness τ = (1/N) * Σ(Ai/Pi)
     where Ai is area, Pi is perimeter, and area > 10 pixels.
+    Implements Eq. 1 from the paper.
     """
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     _, binary = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -28,6 +29,7 @@ def extract_stroke_thickness(image_path):
 def extract_slant_angle(image_path):
     """
     Calculates slant angle θ using Canny edges and Hough Line Transform.
+    Implements Eq. 2 from the paper.
     """
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     edges = cv2.Canny(img, 50, 150, apertureSize=3)
@@ -41,7 +43,7 @@ def extract_slant_angle(image_path):
     angles = []
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        # θ = arctan2(y2 - y1, x2 - x1) * 180 / π
+        # θ = arctan2(y2 - y1, x2 - x1) * 180 / π  (Eq. 2)
         angle_rad = math.atan2(y2 - y1, x2 - x1)
         angle_deg = math.degrees(angle_rad)
         angles.append(angle_deg)
@@ -51,6 +53,7 @@ def extract_slant_angle(image_path):
 def get_style_vector(image_path):
     """
     Returns the style vector s = [τ, θ]
+    Implements Eq. 3: s = Φ(x) = [τ, θ] ∈ ℝᵈ
     """
     tau = extract_stroke_thickness(image_path)
     theta = extract_slant_angle(image_path)
