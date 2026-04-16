@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import pandas as pd
+import matplotlib.pyplot as plt
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
 
 # Import our custom modules
@@ -61,11 +62,12 @@ class StyleScriptLoss(nn.Module):
         
         return L_style, L_content, L_quality
 
+
 # --- PHASE 7: OVERALL OPTIMIZATION & TRAINING LOOP ---
-def train_one_epoch():
-    print("--- Starting StyleScript Training (1 Epoch) ---")
+def train_model(num_epochs=10):
+    print(f"--- Starting StyleScript Training ({num_epochs} Epochs) ---")
     
-   # Load TrOCR and its Tokenizer
+    # Load TrOCR and its Tokenizer
     print("Loading TrOCR model and Tokenizer...")
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-small-printed", use_fast=False)
     trocr = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-small-printed")
@@ -74,21 +76,18 @@ def train_one_epoch():
     trocr.config.decoder_start_token_id = processor.tokenizer.cls_token_id
     trocr.config.pad_token_id = processor.tokenizer.pad_token_id
     
-    # Freeze TrOCR (We only train our generator, we don't want to break Microsoft's model)
+    # Freeze TrOCR
     trocr.eval()
     for param in trocr.parameters():
         param.requires_grad = False
     
-    # Initialize Dataset with the processor
+    # Initialize Dataset
     dataset = DummyMSC_Dataset(csv_file="data/annotations.csv", img_dir="data/raw/", processor=processor)
-    # Using batch_size=1 here because real text strings have different token lengths (padding gets complex in batches)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
     
     # Initialize Pipeline Components
-    # We increase vocab_size to 60000 to support all of TrOCR's possible text tokens
     generator = StyleScriptGenerator()
     generator.encoder.char_embedding = nn.Embedding(num_embeddings=60000, embedding_dim=64)
-    
     augmenter = StyleScriptAugmenter()
     validator = QualityValidator()
     criterion = StyleScriptLoss(trocr_model=trocr)
@@ -98,24 +97,77 @@ def train_one_epoch():
     
     generator.train()
     
-    for batch_idx, (text_tokens, style_vectors) in enumerate(dataloader):
-        optimizer.zero_grad()
+    # --- HISTORY TRACKERS FOR GRAPHING ---
+    history_style = []
+    history_content = []
+    history_total = []
+    
+    # --- THE MULTI-EPOCH LOOP ---
+    for epoch in range(num_epochs):
+        print(f"\n========== EPOCH {epoch+1}/{num_epochs} ==========")
+        epoch_style_loss = 0.0
+        epoch_content_loss = 0.0
+        epoch_total_loss = 0.0
         
-        generated_imgs = generator(text_tokens, style_vectors)
-        aug_imgs = augmenter.forward(generated_imgs)
-        q_score = validator.validate(aug_imgs)
+        for batch_idx, (text_tokens, style_vectors) in enumerate(dataloader):
+            optimizer.zero_grad()
+            
+            generated_imgs = generator(text_tokens, style_vectors)
+            aug_imgs = augmenter.forward(generated_imgs)
+            q_score = validator.validate(aug_imgs)
+            
+            L_style, L_content, L_quality = criterion(style_vectors, generated_imgs, text_tokens, q_score)
+            
+            # ℒ_total = λ₁·ℒ_style + λ₂·ℒ_content + λ₃·ℒ_quality  (Eq. 21)
+            L_total = (lambda1 * L_style) + (lambda2 * L_content) + (lambda3 * L_quality)
+            
+            L_total.backward()
+            optimizer.step()
+            
+            # Accumulate loss
+            epoch_style_loss += L_style.item()
+            epoch_content_loss += L_content.item()
+            epoch_total_loss += L_total.item()
+            
+            print(f"Batch {batch_idx+1}/{len(dataloader)} | L_style: {L_style.item():.4f} | L_content: {L_content.item():.4f} | L_total: {L_total.item():.4f}")
         
-        L_style, L_content, L_quality = criterion(style_vectors, generated_imgs, text_tokens, q_score)
+        # Calculate Averages
+        avg_style = epoch_style_loss / len(dataloader)
+        avg_content = epoch_content_loss / len(dataloader)
+        avg_total = epoch_total_loss / len(dataloader)
         
-        # ℒ_total = λ₁·ℒ_style + λ₂·ℒ_content + λ₃·ℒ_quality  (Eq. 21)
-        L_total = (lambda1 * L_style) + (lambda2 * L_content) + (lambda3 * L_quality)
+        # Store in history
+        history_style.append(avg_style)
+        history_content.append(avg_content)
+        history_total.append(avg_total)
         
-        L_total.backward()
-        optimizer.step()
-        
-        print(f"Image {batch_idx+1}/{len(dataloader)} | L_style: {L_style.item():.4f} | L_content (Cross-Entropy): {L_content.item():.4f} | L_total: {L_total.item():.4f}")
-              
-    print("\nTraining Complete! 100% Conceptually Accurate NLP Integration.")
+        print(f"-> End of Epoch {epoch+1} | Avg L_style: {avg_style:.4f} | Avg L_content: {avg_content:.4f} | Avg L_total: {avg_total:.4f}")
+
+    # --- PRINT FINAL TABLE ---
+    print("\n" + "="*50)
+    print(" 📊 FINAL TRAINING SUMMARY (AVERAGES PER EPOCH)")
+    print("="*50)
+    print(f"{'Epoch':<10} | {'Style Loss':<12} | {'Content Loss':<12} | {'Total Loss':<12}")
+    print("-" * 50)
+    for i in range(num_epochs):
+        print(f"Epoch {i+1:<4} | {history_style[i]:<12.4f} | {history_content[i]:<12.4f} | {history_total[i]:<12.4f}")
+    print("="*50)
+    
+    # --- GENERATE GRAPH ---
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, num_epochs+1), history_style, label='Style Loss', marker='o')
+    plt.plot(range(1, num_epochs+1), history_content, label='Content Loss (TrOCR)', marker='s')
+    plt.plot(range(1, num_epochs+1), history_total, label='Total Loss', marker='^', linestyle='--')
+    
+    plt.title('StyleScript Training Loss over 10 Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss Value')
+    plt.xticks(range(1, num_epochs+1))
+    plt.grid(True, linestyle=':', alpha=0.7)
+    plt.legend()
+    
+    plt.savefig('training_loss_curve.png', dpi=300, bbox_inches='tight')
+    print("\n✅ Training Complete! A summary table has been printed and 'training_loss_curve.png' has been saved to your folder.")
 
 if __name__ == "__main__":
-    train_one_epoch()
+    train_model(num_epochs=10)

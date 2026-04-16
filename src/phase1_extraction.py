@@ -61,10 +61,9 @@ def get_style_vector(image_path):
 
 # Quick local test
 if __name__ == "__main__":
-    # Create a quick dummy image to test the math without needing data yet
-    dummy_img = np.zeros((64, 128), dtype=np.uint8)
-    cv2.line(dummy_img, (20, 50), (40, 10), 255, 2) # Slanted line
-    cv2.imwrite("dummy_test.png", dummy_img)
+    # Test on a REAL messy image from your dataset
+    test_image = "../data/raw/a01-000u-00-00.png" 
     
-    s = get_style_vector("dummy_test.png")
+    print(f"Testing OpenCV extraction on: {test_image}")
+    s = get_style_vector(test_image)
     print(f"Extracted Style Vector [Thickness, Angle]: {s}")
