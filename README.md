@@ -48,12 +48,11 @@ Input Text  ──► Phase 2: Text Encoder E(y) ──► Text Map M
 ```
 styleScript/
 ├── main.py                    # Training entry point (Phases 6 & 7)
-├── generate_dummy_data.py     # Script to create a synthetic dataset for testing
 ├── training_loss_curve.png    # Loss curve graph saved after each training run
 ├── styleScript.pdf            # Original research paper
 ├── data/
 │   ├── annotations.csv        # Image filename ↔ text label mapping
-│   └── raw/                   # Source images (real or generated)
+│   └── raw/                   # Source images
 └── src/
     ├── phase1_extraction.py      # Style vector extraction (stroke thickness + slant angle)
     ├── phase2_3_model.py         # Text encoder + style-controlled generator
@@ -126,13 +125,9 @@ Runs a standalone OCR pass on any image using the `microsoft/trocr-small-printed
 pip install torch torchvision opencv-python numpy pandas transformers matplotlib
 ```
 
-### 1. Generate a Dummy Dataset
+### 1. Prepare Your Dataset
 
-```bash
-python generate_dummy_data.py
-```
-
-This creates 10 synthetic greyscale word images in `data/raw/` and an `annotations.csv` mapping each image to its text label.
+Place your source images in `data/raw/` and ensure `data/annotations.csv` maps each image filename to its text label.
 
 ### 2. Run Training
 
@@ -175,12 +170,12 @@ A `training_loss_curve.png` plot (Style Loss, Content Loss, and Total Loss over 
 python src/section3_2_pipeline.py
 ```
 
-Runs `microsoft/trocr-small-printed` inference on `data/raw/dummy_0.png` and prints the recognised text:
+Runs `microsoft/trocr-small-printed` inference on an image from `data/raw/` and prints the recognised text:
 
 ```
 --- Running Section 3.2: Practical OCR Pipeline ---
 Loading TrOCR model (this may take a minute to download weights)...
-Target Image: data/raw/dummy_0.png
+Target Image: data/raw/sample.png
 Recognized Text: 'STRUCTI'
 ---------------------------------------------------
 ```
