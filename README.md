@@ -48,11 +48,11 @@ Input Text  ──► Phase 2: Text Encoder E(y) ──► Text Map M
 ```
 styleScript/
 ├── main.py                    # Training entry point (Phases 6 & 7)
-├── generate_dummy_data.py     # Script to create a synthetic dataset for testing
+├── training_loss_curve.png    # Loss curve graph saved after each training run
 ├── styleScript.pdf            # Original research paper
 ├── data/
 │   ├── annotations.csv        # Image filename ↔ text label mapping
-│   └── raw/                   # Source images (real or generated)
+│   └── raw/                   # Source images
 └── src/
     ├── phase1_extraction.py      # Style vector extraction (stroke thickness + slant angle)
     ├── phase2_3_model.py         # Text encoder + style-controlled generator
@@ -122,16 +122,12 @@ Runs a standalone OCR pass on any image using the `microsoft/trocr-small-printed
 ### Prerequisites
 
 ```bash
-pip install torch torchvision opencv-python numpy pandas transformers
+pip install torch torchvision opencv-python numpy pandas transformers matplotlib
 ```
 
-### 1. Generate a Dummy Dataset
+### 1. Prepare Your Dataset
 
-```bash
-python generate_dummy_data.py
-```
-
-This creates 10 synthetic greyscale word images in `data/raw/` and an `annotations.csv` mapping each image to its text label.
+Place your source images in `data/raw/` and ensure `data/annotations.csv` maps each image filename to its text label.
 
 ### 2. Run Training
 
@@ -139,15 +135,34 @@ This creates 10 synthetic greyscale word images in `data/raw/` and an `annotatio
 python main.py
 ```
 
-The script loads the TrOCR model, then runs one full training epoch and prints per-image losses:
+The script loads the TrOCR model, then runs **10 training epochs** and prints per-batch losses, per-epoch averages, a final summary table, and saves a loss curve graph:
 
 ```
---- Starting StyleScript Training (1 Epoch) ---
+--- Starting StyleScript Training (10 Epochs) ---
 Loading TrOCR model and Tokenizer...
-Image 1/10 | L_style: 0.4821 | L_content (Cross-Entropy): 3.1234 | L_total: 3.7890
+
+========== EPOCH 1/10 ==========
+Batch 1/10 | L_style: 0.4821 | L_content: 3.1234 | L_total: 3.7890
+Batch 2/10 | L_style: 0.4503 | L_content: 3.0812 | L_total: 3.7128
 ...
-Training Complete! 100% Conceptually Accurate NLP Integration.
+-> End of Epoch 1 | Avg L_style: 0.4631 | Avg L_content: 3.0994 | Avg L_total: 3.7444
+
+========== EPOCH 2/10 ==========
+...
+
+==================================================
+ 📊 FINAL TRAINING SUMMARY (AVERAGES PER EPOCH)
+==================================================
+Epoch      | Style Loss   | Content Loss | Total Loss
+--------------------------------------------------
+Epoch 1    | 0.4631       | 3.0994       | 3.7444
+...
+==================================================
+
+✅ Training Complete! A summary table has been printed and 'training_loss_curve.png' has been saved to your folder.
 ```
+
+A `training_loss_curve.png` plot (Style Loss, Content Loss, and Total Loss over 10 epochs) is saved automatically in the project root.
 
 ### 3. Run TrOCR OCR Inference (Section 3.2)
 
@@ -155,12 +170,12 @@ Training Complete! 100% Conceptually Accurate NLP Integration.
 python src/section3_2_pipeline.py
 ```
 
-Runs `microsoft/trocr-small-printed` inference on `data/raw/dummy_0.png` and prints the recognised text:
+Runs `microsoft/trocr-small-printed` inference on an image from `data/raw/` and prints the recognised text:
 
 ```
 --- Running Section 3.2: Practical OCR Pipeline ---
 Loading TrOCR model (this may take a minute to download weights)...
-Target Image: data/raw/dummy_0.png
+Target Image: data/raw/sample.png
 Recognized Text: 'STRUCTI'
 ---------------------------------------------------
 ```
@@ -188,6 +203,7 @@ python src/section3_2_pipeline.py     # Test TrOCR OCR inference
 | `opencv-python` | Style feature extraction (contours, Hough lines) |
 | `numpy` | Array operations |
 | `pandas` | CSV dataset loading |
+| `matplotlib` | Training loss curve visualisation (`training_loss_curve.png`) |
 
 ---
 
