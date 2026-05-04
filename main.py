@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import pandas as pd
 import matplotlib.pyplot as plt
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
+import json
 
 # Import our custom modules
 from src.phase1_extraction import get_style_vector
@@ -64,8 +65,13 @@ class StyleScriptLoss(nn.Module):
 
 
 # --- PHASE 7: OVERALL OPTIMIZATION & TRAINING LOOP ---
-def train_model(num_epochs=10):
-    print(f"--- Starting StyleScript Training ({num_epochs} Epochs) ---")
+def train_model():
+    # Load JSON Config
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+        
+    num_epochs = config['hyperparameters']['num_epochs']
+    print(f"--- Starting StyleScript Training (Final Boss Mode - {num_epochs} Epochs) ---")
     
     # Load TrOCR and its Tokenizer
     print("Loading TrOCR model and Tokenizer...")
@@ -82,18 +88,32 @@ def train_model(num_epochs=10):
         param.requires_grad = False
     
     # Initialize Dataset
-    dataset = DummyMSC_Dataset(csv_file="data/annotations.csv", img_dir="data/raw/", processor=processor)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+    dataset = DummyMSC_Dataset(
+        csv_file=config['paths']['annotations_csv'], 
+        img_dir=config['paths']['img_dir'], 
+        processor=processor
+    )
+    dataloader = torch.utils.data.DataLoader(
+        dataset, 
+        batch_size=config['hyperparameters']['batch_size'], 
+        shuffle=True
+    )
     
     # Initialize Pipeline Components
     generator = StyleScriptGenerator()
-    generator.encoder.char_embedding = nn.Embedding(num_embeddings=60000, embedding_dim=64)
+    generator.encoder.char_embedding = nn.Embedding(
+        num_embeddings=config['hyperparameters']['vocab_size'], 
+        embedding_dim=64
+    )
     augmenter = StyleScriptAugmenter()
     validator = QualityValidator()
     criterion = StyleScriptLoss(trocr_model=trocr)
     
-    optimizer = optim.AdamW(generator.parameters(), lr=0.0002)
-    lambda1, lambda2, lambda3 = 1.0, 1.0, 0.1 
+    # Load Hyperparameters from Config
+    optimizer = optim.AdamW(generator.parameters(), lr=config['hyperparameters']['learning_rate'])
+    lambda1 = config['loss_weights']['lambda_style']
+    lambda2 = config['loss_weights']['lambda_content']
+    lambda3 = config['loss_weights']['lambda_quality'] 
     
     generator.train()
     
@@ -169,5 +189,9 @@ def train_model(num_epochs=10):
     plt.savefig('training_loss_curve.png', dpi=300, bbox_inches='tight')
     print("\n✅ Training Complete! A summary table has been printed and 'training_loss_curve.png' has been saved to your folder.")
 
+    # --- SAVE THE MODEL WEIGHTS ---
+    torch.save(generator.state_dict(), config['paths']['model_save_path'])
+    print(f"✅ Model weights saved successfully to {config['paths']['model_save_path']}")
+
 if __name__ == "__main__":
-    train_model(num_epochs=10)
+    train_model()

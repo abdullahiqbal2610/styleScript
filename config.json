@@ -1,0 +1,18 @@
+{
+  "hyperparameters": {
+    "num_epochs": 10,
+    "learning_rate": 0.0002,
+    "batch_size": 1,
+    "vocab_size": 60000
+  },
+  "loss_weights": {
+    "lambda_style": 1.0,
+    "lambda_content": 1.0,
+    "lambda_quality": 0.1
+  },
+  "paths": {
+    "annotations_csv": "data/annotations.csv",
+    "img_dir": "data/raw/",
+    "model_save_path": "stylescript_generator.pth"
+  }
+}
