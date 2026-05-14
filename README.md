@@ -1,57 +1,26 @@
 # StyleScript
 
-A Python implementation of the **StyleScript** research paper — a pipeline for generating style-controlled handwritten text images from engineering documents using deep learning.
+This repository is a **project implementation of the paper**:
+**StyleScript: A Structured Data Augmentation Framework for Transformer-Based OCR in Engineering Documents**.
 
-> 📄 See [`styleScript.pdf`](./styleScript.pdf) for the full research paper.
+- Paper in repo: [`styleScript.pdf`](./styleScript.pdf)
+- Implementation report: [`Final_report.docx`](./Final_report.docx)
+- Latest experimental notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
----
+## StyleScript Overview
 
-## Overview
+The paper proposes a structured augmentation pipeline for OCR in engineering-document settings. The core flow is:
 
-StyleScript is a multi-phase pipeline that:
-1. **Extracts** typographic style features (stroke thickness, slant angle) from source images.
-2. **Encodes** input text at the character level with noise modulation, using a vocabulary of 60,000 tokens compatible with TrOCR.
-3. **Generates** images conditioned on the extracted style using Conditional Batch Normalization (CBN) and geometric transformations (font scaling + shear).
-4. **Augments** generated images with rotation, perspective distortion, Gaussian noise, and photometric changes.
-5. **Validates** output quality by checking for blank images and edge sharpness.
-6. **Optimises** the full pipeline using a composite loss (style loss + TrOCR cross-entropy content loss + quality loss).
-7. **Recognises** text in generated images via a dedicated TrOCR inference pipeline (Section 3.2).
-8. **Evaluates** the trained generator by producing synthetic style-perturbed images and measuring CER/WER improvement over a TrOCR baseline.
-9. **Fine-tunes** a downstream TrOCR model on the synthetic data to demonstrate StyleScript's data-augmentation benefit.
+1. Extract style features from handwriting images.
+2. Generate style-controlled synthetic word images.
+3. Fine-tune TrOCR using generated data.
+4. Evaluate impact with CER/WER.
 
----
+Our repository implements this pipeline in Python modules, covering training, generation, OCR inference, and downstream evaluation.
 
-## Architecture
+## Repository Structure
 
-```
-Input Image ──► Phase 1: Style Extraction   ──► Style Vector s = [τ, θ]
-                                                        │
-Input Text  ──► Phase 2: Text Encoder E(y) ──► Text Map M
-                                                        │
-                         Phase 3: Generator G(M, s)    │
-                         (CBN + Font Scale + Shear) ◄──┘
-                                │
-                         Phase 4: Augmentation T(x̂)
-                                │
-                         Phase 5: Quality Validation Q
-                                │
-                         Phase 6: Loss Computation
-                          (L_style + TrOCR Cross-Entropy + L_quality)
-                                │
-                          Phase 7: AdamW Optimisation → stylescript_generator.pth
-                                │
-                    Section 3.2: TrOCR OCR Inference Pipeline
-                                │
-                    Phase 8: Synthetic Data Generation
-                                │
-                    Phase 9: Downstream TrOCR Fine-Tuning + CER/WER Evaluation
-```
-
----
-
-## Project Structure
-
-```
+```text
 styleScript/
 ├── ai-project.ipynb                # Main notebook entry point
 ├── main.py                         # Training entry point (Phases 6 & 7)
@@ -131,14 +100,11 @@ Evaluates the trained StyleScript pipeline against a standard TrOCR baseline:
 Outputs a comparison table (Table 1 from the paper):
 
 ```
-============================================================
  📊 TABLE 1: DOWNSTREAM OCR PERFORMANCE COMPARISON
-============================================================
 Model                     | CER (Lower is better)  | WER
 ------------------------------------------------------------
 Baseline TrOCR            | 0.XXXX                 | 0.XXXX
 StyleScript Enhanced OCR  | 0.XXXX                 | 0.XXXX
-============================================================
 ```
 
 ### Section 3.2 — TrOCR OCR Inference (`testing/section3_2_pipeline.py`)
@@ -198,44 +164,20 @@ If you are migrating from older repo layouts, move any previously tracked local 
 python main.py
 ```
 
-The script reads hyperparameters from `config.json`, loads the TrOCR model, then runs **10 training epochs** and prints per-batch losses, per-epoch averages, a final summary table, and saves a loss curve graph. The trained generator weights are saved to `stylescript_generator.pth`:
+## Latest `ai-project.ipynb` Findings and Results
 
-```
---- Starting StyleScript Training (Final Boss Mode - 10 Epochs) ---
-Loading TrOCR model and Tokenizer...
+The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and StyleScript-style augmentation.
 
-========== EPOCH 1/10 ==========
-Batch 1/10 | L_style: 0.4821 | L_content: 3.1234 | L_total: 3.7890
-Batch 2/10 | L_style: 0.4503 | L_content: 3.0812 | L_total: 3.7128
-...
--> End of Epoch 1 | Avg L_style: 0.4631 | Avg L_content: 3.0994 | Avg L_total: 3.7444
-
-========== EPOCH 2/10 ==========
-...
-
-==================================================
- 📊 FINAL TRAINING SUMMARY (AVERAGES PER EPOCH)
-==================================================
-Epoch      | Style Loss   | Content Loss | Total Loss
---------------------------------------------------
-Epoch 1    | 0.4631       | 3.0994       | 3.7444
-...
-==================================================
-
-✅ Training Complete! A summary table has been printed and 'training_loss_curve.png' has been saved to your folder.
-```
-
-A `training_loss_curve.png` plot (Style Loss, Content Loss, and Total Loss over 10 epochs) is saved automatically in the project root. Generator weights are saved to `stylescript_generator.pth`.
-
-### 3. Run Downstream Evaluation (Phases 8 & 9)
+### Reported replication table (from notebook output)
 
 ```bash
 python testing/phase8_9_evaluation.py
 ```
 
-Loads the saved `stylescript_generator.pth`, generates synthetic training data, fine-tunes TrOCR on it, and prints a CER/WER comparison table (Table 1 from the paper). Requires `jiwer` (`pip install jiwer`).
+### Additional notebook run outputs
 
-### 4. Run TrOCR OCR Inference (Section 3.2)
+- The notebook also contains intermediate run logs from earlier evaluation cells.
+- The final comparative table above shows the canonical replication metrics used in this README, taken from the notebook's consolidated summary section.
 
 ```bash
 python testing/section3_2_pipeline.py
@@ -263,23 +205,17 @@ python testing/phase8_9_evaluation.py # Run downstream evaluation (Phases 8 & 9)
 python testing/section3_2_pipeline.py # Test TrOCR OCR inference
 ```
 
----
+- style extraction → generation → augmentation/validation → optimization → synthetic data creation → TrOCR fine-tuning → CER/WER evaluation.
 
-## Key Dependencies
+Some paper-scale components are simplified/partially replicated in this academic setting, and those limitations are documented in `Final_report.docx`.
 
-| Library | Purpose |
-|---------|---------|
-| `torch` | Neural network, loss functions, AdamW optimiser |
-| `torchvision` | Augmentation transforms (rotation, perspective) |
-| `transformers` | TrOCR model & processor (tokenisation + cross-entropy content loss + OCR inference) |
-| `opencv-python` | Style feature extraction (contours, Hough lines) |
-| `numpy` | Array operations |
-| `pandas` | CSV dataset loading |
-| `matplotlib` | Training loss curve visualisation (`training_loss_curve.png`) |
-| `jiwer` | CER & WER computation for downstream OCR evaluation (Phases 8 & 9) |
+## Team Reference
 
----
+This project was completed by:
 
-## Citation
+- **Aaleen Fatima** — 23L-0652
+- **Muhammad Abdullah Iqbal** — 23L-0811
+- **Laiba Amjad** — 23L-0642
+- **Mariyam Akram** — 23L-0809
 
-If you use this implementation, please refer to the original StyleScript paper included in this repository (`styleScript.pdf`).
+GitHub Repository: `abdullahiqbal2610/styleScript`
