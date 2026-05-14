@@ -22,6 +22,8 @@ Our repository implements this pipeline in Python modules, covering training, ge
 
 ```text
 styleScript/
+├── .vscode/
+│   └── settings.json               # Local VS Code workspace settings
 ├── README.md
 ├── styleScript.pdf                 # Original StyleScript paper
 ├── Final_report.docx               # Formal implementation analysis and findings
@@ -32,8 +34,9 @@ styleScript/
 ├── training_loss_curve.png         # Training loss visualization
 ├── data/
 │   ├── annotations.csv             # filename ↔ text mapping
-│   └── raw/                        # input images
+│   └── raw/                        # IAM word image samples
 └── src/
+    ├── __pycache__/                # Auto-generated Python bytecode cache
     ├── phase1_extraction.py        # Style feature extraction
     ├── phase2_3_model.py           # Text encoder + style-conditioned generator
     ├── phase4_5_utils.py           # Augmentations + quality checks
