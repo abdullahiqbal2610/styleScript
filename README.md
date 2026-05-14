@@ -4,7 +4,6 @@ This repository is a **project implementation of the paper**:
 **StyleScript: A Structured Data Augmentation Framework for Transformer-Based OCR in Engineering Documents**.
 
 - Paper in repo: [`styleScript.pdf`](./styleScript.pdf)
-- Implementation report: [`Final_report.docx`](./Final_report.docx)
 - Latest experimental notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
 ## StyleScript Overview
