@@ -5,7 +5,7 @@ This repository is a **project implementation of the paper**:
 
 - Paper in repo: [`styleScript.pdf`](./styleScript.pdf)
 - Implementation report: [`Final_report.docx`](./Final_report.docx)
-- Latest experimentation notebook: [`ai-project.ipynb`](./ai-project.ipynb)
+- Latest experimental notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
 ## StyleScript Paper Focus
 
@@ -55,9 +55,8 @@ The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and S
 
 ### Additional notebook run outputs
 
-- StyleScript enhanced OCR run reported in one evaluation cell: **CER 0.0140, WER 0.0200**.
-- ScrabbleGAN enhanced OCR run reported: **CER 0.0608, WER 0.1133**.
-- The notebook's final comparative summary table reports StyleScript as **1.4% / 2.67%**; this README keeps both outputs explicitly as reported.
+- Intermediate run logs in the notebook include values such as StyleScript **CER 1.40%, WER 2.00%** and ScrabbleGAN **CER 6.08%, WER 11.33%**.
+- The final comparative table above shows the canonical replication metrics (including StyleScript **1.4% / 2.67%**) from the notebook's consolidated summary section.
 
 ### What these results show
 
@@ -82,4 +81,4 @@ This project was completed by:
 - **Laiba Amjad** — 23L-0642
 - **Mariyam Akram** — 23L-0809
 
-Repository: `abdullahiqbal2610/styleScript`
+GitHub Repository: `abdullahiqbal2610/styleScript`
