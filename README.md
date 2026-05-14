@@ -7,7 +7,7 @@ This repository is a **project implementation of the paper**:
 - Implementation report: [`Final_report.docx`](./Final_report.docx)
 - Latest experimental notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
-## StyleScript Paper Focus
+## StyleScript Overview
 
 The paper proposes a structured augmentation pipeline for OCR in engineering-document settings. The core flow is:
 
@@ -18,7 +18,7 @@ The paper proposes a structured augmentation pipeline for OCR in engineering-doc
 
 Our repository implements this pipeline in Python modules, covering training, generation, OCR inference, and downstream evaluation.
 
-## Repository Structure (Current)
+## Repository Structure
 
 ```text
 styleScript/
@@ -55,8 +55,8 @@ The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and S
 
 ### Additional notebook run outputs
 
-- Intermediate run logs in the notebook include values such as StyleScript **CER 1.40%, WER 2.00%** and ScrabbleGAN **CER 6.08%, WER 11.33%**.
-- The final comparative table above shows the canonical replication metrics (including StyleScript **1.4% / 2.67%**) from the notebook's consolidated summary section.
+- The notebook also contains intermediate run logs from earlier evaluation cells.
+- The final comparative table above shows the canonical replication metrics used in this README, taken from the notebook's consolidated summary section.
 
 ### What these results show
 
