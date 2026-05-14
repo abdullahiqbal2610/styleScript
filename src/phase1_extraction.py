@@ -62,7 +62,7 @@ def get_style_vector(image_path):
 # Quick local test
 if __name__ == "__main__":
     # Test on a REAL messy image from your dataset
-    test_image = "../data/raw/a01-000u-00-00.png" 
+    test_image = "../data/test/sample.png" 
     
     print(f"Testing OpenCV extraction on: {test_image}")
     s = get_style_vector(test_image)

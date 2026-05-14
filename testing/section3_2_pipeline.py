@@ -34,4 +34,4 @@ def run_trocr_inference(image_path):
 
 if __name__ == "__main__":
     # Test the OCR on the first dummy image we created earlier
-    run_trocr_inference("data/raw/dummy_0.png")
+    run_trocr_inference("data/test/sample.png")
