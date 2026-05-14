@@ -1,281 +1,84 @@
 # StyleScript
 
-A Python implementation of the **StyleScript** research paper — a pipeline for generating style-controlled handwritten text images from engineering documents using deep learning.
+This repository is a **project implementation of the paper**:
+**StyleScript: A Structured Data Augmentation Framework for Transformer-Based OCR in Engineering Documents**.
 
-> 📄 See [`styleScript.pdf`](./styleScript.pdf) for the full research paper.
+- Paper in repo: [`styleScript.pdf`](./styleScript.pdf)
+- Implementation report: [`Final_report.docx`](./Final_report.docx)
+- Latest experimentation notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
----
+## 1) StyleScript Paper Focus
 
-## Overview
+The paper proposes a structured augmentation pipeline for OCR in engineering-document settings. The core flow is:
 
-StyleScript is a multi-phase pipeline that:
-1. **Extracts** typographic style features (stroke thickness, slant angle) from source images.
-2. **Encodes** input text at the character level with noise modulation, using a vocabulary of 60,000 tokens compatible with TrOCR.
-3. **Generates** images conditioned on the extracted style using Conditional Batch Normalization (CBN) and geometric transformations (font scaling + shear).
-4. **Augments** generated images with rotation, perspective distortion, Gaussian noise, and photometric changes.
-5. **Validates** output quality by checking for blank images and edge sharpness.
-6. **Optimises** the full pipeline using a composite loss (style loss + TrOCR cross-entropy content loss + quality loss).
-7. **Recognises** text in generated images via a dedicated TrOCR inference pipeline (Section 3.2).
-8. **Evaluates** the trained generator by producing synthetic style-perturbed images and measuring CER/WER improvement over a TrOCR baseline.
-9. **Fine-tunes** a downstream TrOCR model on the synthetic data to demonstrate StyleScript's data-augmentation benefit.
+1. Extract style features from handwriting images.
+2. Generate style-controlled synthetic word images.
+3. Fine-tune TrOCR using generated data.
+4. Evaluate impact with CER/WER.
 
----
+Our repository implements this pipeline in Python modules, covering training, generation, OCR inference, and downstream evaluation.
 
-## Architecture
+## 2) Repository Structure (Current)
 
-```
-Input Image ──► Phase 1: Style Extraction   ──► Style Vector s = [τ, θ]
-                                                        │
-Input Text  ──► Phase 2: Text Encoder E(y) ──► Text Map M
-                                                        │
-                         Phase 3: Generator G(M, s)    │
-                         (CBN + Font Scale + Shear) ◄──┘
-                                │
-                         Phase 4: Augmentation T(x̂)
-                                │
-                         Phase 5: Quality Validation Q
-                                │
-                         Phase 6: Loss Computation
-                          (L_style + TrOCR Cross-Entropy + L_quality)
-                                │
-                          Phase 7: AdamW Optimisation → stylescript_generator.pth
-                                │
-                    Section 3.2: TrOCR OCR Inference Pipeline
-                                │
-                    Phase 8: Synthetic Data Generation
-                                │
-                    Phase 9: Downstream TrOCR Fine-Tuning + CER/WER Evaluation
-```
-
----
-
-## Project Structure
-
-```
+```text
 styleScript/
-├── main.py                       # Training entry point (Phases 6 & 7)
-├── config.json                   # Hyperparameters, loss weights, and file paths
-├── stylescript_generator.pth     # Saved generator model weights (after training)
-├── training_loss_curve.png       # Loss curve graph saved after each training run
-├── styleScript.pdf               # Original research paper
+├── README.md
+├── styleScript.pdf                 # Original StyleScript paper
+├── Final_report.docx               # Formal implementation analysis and findings
+├── ai-project.ipynb                # Latest notebook experiments/results
+├── main.py                         # Training entry point (generator + losses)
+├── config.json                     # Hyperparameters, paths, loss weights
+├── stylescript_generator.pth       # Saved generator checkpoint
+├── training_loss_curve.png         # Training loss visualization
 ├── data/
-│   ├── annotations.csv           # Image filename ↔ text label mapping
-│   └── raw/                      # Source images
+│   ├── annotations.csv             # filename ↔ text mapping
+│   └── raw/                        # input images
 └── src/
-    ├── phase1_extraction.py         # Style vector extraction (stroke thickness + slant angle)
-    ├── phase2_3_model.py            # Text encoder + style-controlled generator
-    ├── phase4_5_utils.py            # Augmentation pipeline + quality validator
-    ├── phase8_9_evaluation.py       # Synthetic data generation + downstream OCR fine-tuning + CER/WER evaluation
-    └── section3_2_pipeline.py       # TrOCR OCR inference pipeline (Section 3.2)
+    ├── phase1_extraction.py        # Style feature extraction
+    ├── phase2_3_model.py           # Text encoder + style-conditioned generator
+    ├── phase4_5_utils.py           # Augmentations + quality checks
+    ├── section3_2_pipeline.py      # TrOCR OCR inference pipeline
+    └── phase8_9_evaluation.py      # Synthetic generation + fine-tuning + CER/WER
 ```
 
----
+## 3) Latest `ai-project.ipynb` Findings and Results
 
-## Phases Explained
+The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and StyleScript-style augmentation.
 
-### Phase 1 — Style Extraction (`src/phase1_extraction.py`)
-Computes a 2D style vector **s = [τ, θ]** from a source word image:
+### Reported replication table (from notebook output)
 
-| Feature | Formula | Method |
-|---------|---------|--------|
-| Stroke Thickness τ | τ = (1/N) Σ(Aᵢ/Pᵢ) | Contour area / perimeter via OpenCV |
-| Slant Angle θ | θ = arctan2(Δy, Δx) | Hough Line Transform on Canny edges |
+| Condition | Paper Small (CER/WER) | Our Replication (CER/WER) |
+|---|---|---|
+| Baseline | 1.81% / 6.74% | 44.62% / 85.33% |
+| ScrabbleGAN | 2.07% / 6.87% | 6.08% / 11.33% |
+| StyleScript | 1.54% / 6.48% | **1.4% / 2.67%** |
 
-### Phase 2 — Text Encoder (`src/phase2_3_model.py`)
-- Character embeddings → noise modulation **F(y, ε) = f_c ⊗ ε**
-- Embeddings are concatenated horizontally to form a text map **M**.
-- Vocabulary size is set to **60,000** to support the full TrOCR token space.
+### Additional notebook run outputs
 
-### Phase 3 — Style-Controlled Generator (`src/phase2_3_model.py`)
-- **Conditional Batch Normalization**: `CBN(h, s) = γ(s) · (h − μ)/σ + β(s)`
-- **Font scaling** (Eq. 8): `scale = clamp(τ / 2, 0.8, 1.2)`
-- **Shear transformation** (Eq. 9): affine matrix derived from clamped slant angle θ ∈ [−30°, 30°]
-- Output: 64 × 128 greyscale image tensor.
+- StyleScript enhanced OCR run reported: **CER 0.0140, WER 0.0200**.
+- ScrabbleGAN enhanced OCR run reported: **CER 0.0608, WER 0.1133**.
 
-### Phase 4 — Augmentation (`src/phase4_5_utils.py`)
-Composite transform **T = T_rot ∘ T_pers ∘ T_noise ∘ T_photo**:
-- **T_rot**: Random rotation ±3°
-- **T_pers**: Random perspective distortion (scale 0.1)
-- **T_noise**: Gaussian noise η ~ N(0, σ²), σ = 0.05
-- **T_photo**: Brightness and contrast jitter U(0.95, 1.05)
+### What these results show
 
-### Phase 5 — Quality Validation (`src/phase4_5_utils.py`)
-`Q_total = Q_blank ∧ Q_bound ∧ (R ≥ R_min)`:
-- **Q_blank**: Rejects images where all pixels are near-white (threshold ≥ 0.98)
-- **R**: Edge sharpness via Laplacian convolution variance
+- Within our replication environment, the StyleScript pipeline gives the best OCR performance among tested settings.
+- The implementation captures the paper’s core objective: using structured synthetic augmentation to improve TrOCR recognition quality.
+- Differences versus paper baselines are expected due to dataset, scale, and resource constraints described in `Final_report.docx`.
 
-### Phase 6 & 7 — Loss & Optimisation (`main.py`)
-```
-L_total = λ₁·L_style + λ₂·L_content + λ₃·L_quality
-```
-| Term | Description |
-|------|-------------|
-| L_style | L1 loss between generated and target style vectors |
-| L_content | **TrOCR Cross-Entropy** — generated image is passed through the frozen `microsoft/trocr-small-printed` decoder with target token IDs as labels |
-| L_quality | −log(Q_total) — penalises low-quality outputs |
+## 4) Implementation Status vs Paper
 
-All hyperparameters and paths are loaded from **`config.json`** (see [Configuration](#configuration)). Optimiser: **AdamW** (lr = 0.0002), λ₁ = 1.0, λ₂ = 1.0, λ₃ = 0.1.
+Based on the report and codebase, this project is an **honest implementation of the StyleScript paper** with end-to-end coverage of the main algorithmic path:
 
-TrOCR is loaded in **frozen** evaluation mode; only the StyleScript generator parameters are trained. After training, the generator weights are saved to `stylescript_generator.pth`.
+- style extraction → generation → augmentation/validation → optimization → synthetic data creation → TrOCR fine-tuning → CER/WER evaluation.
 
-### Phases 8 & 9 — Evaluation & Downstream Fine-Tuning (`src/phase8_9_evaluation.py`)
-Evaluates the trained StyleScript pipeline against a standard TrOCR baseline:
+Some paper-scale components are simplified/partially replicated in this academic setting, and those limitations are documented in `Final_report.docx`.
 
-1. **Baseline evaluation** — runs `microsoft/trocr-small-printed` directly on the dataset and records CER & WER.
-2. **Synthetic data generation (Phase 8)** — loads the saved generator (`stylescript_generator.pth`) and produces style-perturbed synthetic images from each annotation.
-3. **Downstream fine-tuning (Phase 9)** — fine-tunes TrOCR on the synthetic images with a low learning rate (5 × 10⁻⁵).
-4. **StyleScript evaluation** — re-evaluates TrOCR after fine-tuning to measure improvement.
+## 5) Team Reference
 
-Outputs a comparison table (Table 1 from the paper):
+This project was completed by:
 
-```
-============================================================
- 📊 TABLE 1: DOWNSTREAM OCR PERFORMANCE COMPARISON
-============================================================
-Model                     | CER (Lower is better)  | WER
-------------------------------------------------------------
-Baseline TrOCR            | 0.XXXX                 | 0.XXXX
-StyleScript Enhanced OCR  | 0.XXXX                 | 0.XXXX
-============================================================
-```
+- **Aaleen Fatima** — 23L-0652
+- **Muhammad Abdullah Iqbal** — 23L-0811
+- **Laiba Amjad** — 23L-0642
+- **Mariyam Akram** — 23L-0809
 
-### Section 3.2 — TrOCR OCR Inference (`src/section3_2_pipeline.py`)
-Runs a standalone OCR pass on any image using the `microsoft/trocr-small-printed` model:
-- Opens an image, converts to RGB, and processes it with `TrOCRProcessor`.
-- Calls `model.generate()` and decodes the predicted text.
-- Can be used independently to verify the OCR quality of any generated image.
-
----
-
-## Configuration
-
-All training hyperparameters and file paths are stored in **`config.json`** at the project root:
-
-```json
-{
-  "hyperparameters": {
-    "num_epochs": 10,
-    "learning_rate": 0.0002,
-    "batch_size": 1,
-    "vocab_size": 60000
-  },
-  "loss_weights": {
-    "lambda_style": 1.0,
-    "lambda_content": 1.0,
-    "lambda_quality": 0.1
-  },
-  "paths": {
-    "annotations_csv": "data/annotations.csv",
-    "img_dir": "data/raw/",
-    "model_save_path": "stylescript_generator.pth"
-  }
-}
-```
-
-Edit this file to change epochs, learning rate, or dataset paths without touching any Python source files.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-```bash
-pip install torch torchvision opencv-python numpy pandas transformers matplotlib jiwer
-```
-
-### 1. Prepare Your Dataset
-
-Place your source images in `data/raw/` and ensure `data/annotations.csv` maps each image filename to its text label.
-
-### 2. Run Training
-
-```bash
-python main.py
-```
-
-The script reads hyperparameters from `config.json`, loads the TrOCR model, then runs **10 training epochs** and prints per-batch losses, per-epoch averages, a final summary table, and saves a loss curve graph. The trained generator weights are saved to `stylescript_generator.pth`:
-
-```
---- Starting StyleScript Training (Final Boss Mode - 10 Epochs) ---
-Loading TrOCR model and Tokenizer...
-
-========== EPOCH 1/10 ==========
-Batch 1/10 | L_style: 0.4821 | L_content: 3.1234 | L_total: 3.7890
-Batch 2/10 | L_style: 0.4503 | L_content: 3.0812 | L_total: 3.7128
-...
--> End of Epoch 1 | Avg L_style: 0.4631 | Avg L_content: 3.0994 | Avg L_total: 3.7444
-
-========== EPOCH 2/10 ==========
-...
-
-==================================================
- 📊 FINAL TRAINING SUMMARY (AVERAGES PER EPOCH)
-==================================================
-Epoch      | Style Loss   | Content Loss | Total Loss
---------------------------------------------------
-Epoch 1    | 0.4631       | 3.0994       | 3.7444
-...
-==================================================
-
-✅ Training Complete! A summary table has been printed and 'training_loss_curve.png' has been saved to your folder.
-```
-
-A `training_loss_curve.png` plot (Style Loss, Content Loss, and Total Loss over 10 epochs) is saved automatically in the project root. Generator weights are saved to `stylescript_generator.pth`.
-
-### 3. Run Downstream Evaluation (Phases 8 & 9)
-
-```bash
-python src/phase8_9_evaluation.py
-```
-
-Loads the saved `stylescript_generator.pth`, generates synthetic training data, fine-tunes TrOCR on it, and prints a CER/WER comparison table (Table 1 from the paper). Requires `jiwer` (`pip install jiwer`).
-
-### 4. Run TrOCR OCR Inference (Section 3.2)
-
-```bash
-python src/section3_2_pipeline.py
-```
-
-Runs `microsoft/trocr-small-printed` inference on an image from `data/raw/` and prints the recognised text:
-
-```
---- Running Section 3.2: Practical OCR Pipeline ---
-Loading TrOCR model (this may take a minute to download weights)...
-Target Image: data/raw/sample.png
-Recognized Text: 'STRUCTI'
----------------------------------------------------
-```
-
-### 5. Test Individual Phases
-
-Each module can be run independently:
-
-```bash
-python src/phase1_extraction.py       # Test style vector extraction
-python src/phase2_3_model.py          # Test text encoder + generator
-python src/phase4_5_utils.py          # Test augmentation + quality validation
-python src/phase8_9_evaluation.py     # Run downstream evaluation (Phases 8 & 9)
-python src/section3_2_pipeline.py     # Test TrOCR OCR inference
-```
-
----
-
-## Key Dependencies
-
-| Library | Purpose |
-|---------|---------|
-| `torch` | Neural network, loss functions, AdamW optimiser |
-| `torchvision` | Augmentation transforms (rotation, perspective) |
-| `transformers` | TrOCR model & processor (tokenisation + cross-entropy content loss + OCR inference) |
-| `opencv-python` | Style feature extraction (contours, Hough lines) |
-| `numpy` | Array operations |
-| `pandas` | CSV dataset loading |
-| `matplotlib` | Training loss curve visualisation (`training_loss_curve.png`) |
-| `jiwer` | CER & WER computation for downstream OCR evaluation (Phases 8 & 9) |
-
----
-
-## Citation
-
-If you use this implementation, please refer to the original StyleScript paper included in this repository (`styleScript.pdf`).
+Repository: `abdullahiqbal2610/styleScript`
