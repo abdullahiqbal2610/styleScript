@@ -12,7 +12,7 @@
   },
   "paths": {
     "annotations_csv": "data/annotations.csv",
-    "img_dir": "data/raw/",
+    "img_dir": "data/test/",
     "model_save_path": "stylescript_generator.pth"
   }
 }

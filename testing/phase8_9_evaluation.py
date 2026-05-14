@@ -1,15 +1,22 @@
-import torch
+import sys
+from pathlib import Path
+import json
+import os
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import cv2
 import jiwer
 import pandas as pd
-import json
+import torch
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
 import torch.optim as optim
 import torch.nn.functional as F
 
-from phase2_3_model import StyleScriptGenerator
-from phase1_extraction import get_style_vector
-import os
-import cv2
+from src.phase2_3_model import StyleScriptGenerator
+from src.phase1_extraction import get_style_vector
 
 # Load Config
 with open('config.json', 'r') as f:

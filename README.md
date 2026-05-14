@@ -53,20 +53,22 @@ Input Text  ──► Phase 2: Text Encoder E(y) ──► Text Map M
 
 ```
 styleScript/
-├── main.py                       # Training entry point (Phases 6 & 7)
-├── config.json                   # Hyperparameters, loss weights, and file paths
-├── stylescript_generator.pth     # Saved generator model weights (after training)
-├── training_loss_curve.png       # Loss curve graph saved after each training run
-├── styleScript.pdf               # Original research paper
+├── ai-project.ipynb                # Main notebook entry point
+├── main.py                         # Training entry point (Phases 6 & 7)
+├── config.json                     # Hyperparameters, loss weights, and file paths
+├── stylescript_generator.pth       # Saved generator model weights (after training)
+├── training_loss_curve.png         # Loss curve graph saved after each training run
+├── styleScript.pdf                 # Original research paper
 ├── data/
-│   ├── annotations.csv           # Image filename ↔ text label mapping
-│   └── raw/                      # Source images
-└── src/
-    ├── phase1_extraction.py         # Style vector extraction (stroke thickness + slant angle)
-    ├── phase2_3_model.py            # Text encoder + style-controlled generator
-    ├── phase4_5_utils.py            # Augmentation pipeline + quality validator
-    ├── phase8_9_evaluation.py       # Synthetic data generation + downstream OCR fine-tuning + CER/WER evaluation
-    └── section3_2_pipeline.py       # TrOCR OCR inference pipeline (Section 3.2)
+│   ├── annotations.csv             # Image filename ↔ text label mapping
+│   └── test/                       # Optional local/test image folder (no raw dataset tracked)
+├── src/
+│   ├── phase1_extraction.py        # Style vector extraction (stroke thickness + slant angle)
+│   ├── phase2_3_model.py           # Text encoder + style-controlled generator
+│   └── phase4_5_utils.py           # Augmentation pipeline + quality validator
+└── testing/
+    ├── phase8_9_evaluation.py      # Optional synthetic evaluation and downstream OCR fine-tuning
+    └── section3_2_pipeline.py      # Optional TrOCR OCR inference pipeline (Section 3.2)
 ```
 
 ---
@@ -118,7 +120,7 @@ All hyperparameters and paths are loaded from **`config.json`** (see [Configurat
 
 TrOCR is loaded in **frozen** evaluation mode; only the StyleScript generator parameters are trained. After training, the generator weights are saved to `stylescript_generator.pth`.
 
-### Phases 8 & 9 — Evaluation & Downstream Fine-Tuning (`src/phase8_9_evaluation.py`)
+### Phases 8 & 9 — Evaluation & Downstream Fine-Tuning (`testing/phase8_9_evaluation.py`)
 Evaluates the trained StyleScript pipeline against a standard TrOCR baseline:
 
 1. **Baseline evaluation** — runs `microsoft/trocr-small-printed` directly on the dataset and records CER & WER.
@@ -139,7 +141,7 @@ StyleScript Enhanced OCR  | 0.XXXX                 | 0.XXXX
 ============================================================
 ```
 
-### Section 3.2 — TrOCR OCR Inference (`src/section3_2_pipeline.py`)
+### Section 3.2 — TrOCR OCR Inference (`testing/section3_2_pipeline.py`)
 Runs a standalone OCR pass on any image using the `microsoft/trocr-small-printed` model:
 - Opens an image, converts to RGB, and processes it with `TrOCRProcessor`.
 - Calls `model.generate()` and decodes the predicted text.
@@ -166,7 +168,7 @@ All training hyperparameters and file paths are stored in **`config.json`** at t
   },
   "paths": {
     "annotations_csv": "data/annotations.csv",
-    "img_dir": "data/raw/",
+    "img_dir": "data/test/",
     "model_save_path": "stylescript_generator.pth"
   }
 }
@@ -186,7 +188,9 @@ pip install torch torchvision opencv-python numpy pandas transformers matplotlib
 
 ### 1. Prepare Your Dataset
 
-Place your source images in `data/raw/` and ensure `data/annotations.csv` maps each image filename to its text label.
+Use your Kaggle dataset and keep `data/annotations.csv` mapped to your image filenames.  
+If you run locally, place optional test images in `data/test/`.
+If you are migrating from older repo layouts, move any previously tracked local files from `data/raw/` into `data/test/`.
 
 ### 2. Run Training
 
@@ -226,7 +230,7 @@ A `training_loss_curve.png` plot (Style Loss, Content Loss, and Total Loss over 
 ### 3. Run Downstream Evaluation (Phases 8 & 9)
 
 ```bash
-python src/phase8_9_evaluation.py
+python testing/phase8_9_evaluation.py
 ```
 
 Loads the saved `stylescript_generator.pth`, generates synthetic training data, fine-tunes TrOCR on it, and prints a CER/WER comparison table (Table 1 from the paper). Requires `jiwer` (`pip install jiwer`).
@@ -234,15 +238,15 @@ Loads the saved `stylescript_generator.pth`, generates synthetic training data, 
 ### 4. Run TrOCR OCR Inference (Section 3.2)
 
 ```bash
-python src/section3_2_pipeline.py
+python testing/section3_2_pipeline.py
 ```
 
-Runs `microsoft/trocr-small-printed` inference on an image from `data/raw/` and prints the recognised text:
+Runs `microsoft/trocr-small-printed` inference on an image from `data/test/` and prints the recognised text:
 
 ```
 --- Running Section 3.2: Practical OCR Pipeline ---
 Loading TrOCR model (this may take a minute to download weights)...
-Target Image: data/raw/sample.png
+Target Image: data/test/sample.png
 Recognized Text: 'STRUCTI'
 ---------------------------------------------------
 ```
@@ -255,8 +259,8 @@ Each module can be run independently:
 python src/phase1_extraction.py       # Test style vector extraction
 python src/phase2_3_model.py          # Test text encoder + generator
 python src/phase4_5_utils.py          # Test augmentation + quality validation
-python src/phase8_9_evaluation.py     # Run downstream evaluation (Phases 8 & 9)
-python src/section3_2_pipeline.py     # Test TrOCR OCR inference
+python testing/phase8_9_evaluation.py # Run downstream evaluation (Phases 8 & 9)
+python testing/section3_2_pipeline.py # Test TrOCR OCR inference
 ```
 
 ---
