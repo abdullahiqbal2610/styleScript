@@ -190,7 +190,7 @@ pip install torch torchvision opencv-python numpy pandas transformers matplotlib
 
 Use your Kaggle dataset and keep `data/annotations.csv` mapped to your image filenames.  
 If you run locally, place optional test images in `data/test/`.
-If you are migrating from older repo layouts, move any previously local files from `data/raw/` into `data/test/`.
+If you are migrating from older repo layouts, move any previously tracked local files from `data/raw/` into `data/test/`.
 
 ### 2. Run Training
 
