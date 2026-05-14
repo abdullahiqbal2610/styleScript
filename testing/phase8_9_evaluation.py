@@ -2,9 +2,15 @@ import torch
 import jiwer
 import pandas as pd
 import json
+import sys
+from pathlib import Path
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
 import torch.optim as optim
 import torch.nn.functional as F
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.phase2_3_model import StyleScriptGenerator
 from src.phase1_extraction import get_style_vector
