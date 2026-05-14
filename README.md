@@ -7,7 +7,7 @@ This repository is a **project implementation of the paper**:
 - Implementation report: [`Final_report.docx`](./Final_report.docx)
 - Latest experimentation notebook: [`ai-project.ipynb`](./ai-project.ipynb)
 
-## 1) StyleScript Paper Focus
+## StyleScript Paper Focus
 
 The paper proposes a structured augmentation pipeline for OCR in engineering-document settings. The core flow is:
 
@@ -18,7 +18,7 @@ The paper proposes a structured augmentation pipeline for OCR in engineering-doc
 
 Our repository implements this pipeline in Python modules, covering training, generation, OCR inference, and downstream evaluation.
 
-## 2) Repository Structure (Current)
+## Repository Structure (Current)
 
 ```text
 styleScript/
@@ -41,7 +41,7 @@ styleScript/
     └── phase8_9_evaluation.py      # Synthetic generation + fine-tuning + CER/WER
 ```
 
-## 3) Latest `ai-project.ipynb` Findings and Results
+## Latest `ai-project.ipynb` Findings and Results
 
 The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and StyleScript-style augmentation.
 
@@ -55,8 +55,9 @@ The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and S
 
 ### Additional notebook run outputs
 
-- StyleScript enhanced OCR run reported: **CER 0.0140, WER 0.0200**.
+- StyleScript enhanced OCR run reported in one evaluation cell: **CER 0.0140, WER 0.0200**.
 - ScrabbleGAN enhanced OCR run reported: **CER 0.0608, WER 0.1133**.
+- The notebook's final comparative summary table reports StyleScript as **1.4% / 2.67%**; this README keeps both outputs explicitly as reported.
 
 ### What these results show
 
@@ -64,7 +65,7 @@ The latest notebook compares baseline OCR, ScrabbleGAN-style augmentation, and S
 - The implementation captures the paper’s core objective: using structured synthetic augmentation to improve TrOCR recognition quality.
 - Differences versus paper baselines are expected due to dataset, scale, and resource constraints described in `Final_report.docx`.
 
-## 4) Implementation Status vs Paper
+## Implementation Status vs Paper
 
 Based on the report and codebase, this project is an **honest implementation of the StyleScript paper** with end-to-end coverage of the main algorithmic path:
 
@@ -72,7 +73,7 @@ Based on the report and codebase, this project is an **honest implementation of 
 
 Some paper-scale components are simplified/partially replicated in this academic setting, and those limitations are documented in `Final_report.docx`.
 
-## 5) Team Reference
+## Team Reference
 
 This project was completed by:
 
